@@ -9,7 +9,8 @@ Targeted primarily at **New 3DS / New 3DS XL / New 2DS XL** consoles.
 - Accurate Game Boy & Game Boy Color emulation via bundled Gambatte (`VIDEO_RGB565`)
 - 64x Kaiser-windowed sinc audio resampling via `blipper` into NDSP stereo output at `32,768 Hz` with a thread-safe stereo ring buffer (`Low` / `Normal` / `High` buffer depth & `100%`–`200%` volume boost)
 - DMG palettes (`DMG Green`, `GB Pocket`, `Grayscale`), GBC LCD color correction (`Off`, `Accurate`, `Fast`), hardware mode override (`Auto`, `Force DMG`, `Force CGB`), and optional LCD interframe blending
-- Hardware-accelerated PICA200 rendering with selectable scaling (`None 160x144`, `Fit 10:9`, `4:3`, `Full`), filtering (`Sharp`, `Smooth`, `Balanced`), scanlines, cropping, overscan, Top/Bottom screen swap, custom bezels/overlays, and custom game/second-screen backgrounds
+- Hardware-accelerated PICA200 rendering with selectable scaling (`None 160x144`, `Fit 10:9`, `4:3`, `Full`), filtering (`Sharp`, `Smooth`, `Balanced`), scanlines, cropping, overscan, Top/Bottom screen swap, built-in and custom bezels/overlays (`romfs/gfx/overlay.png`), and built-in/custom game and second-screen backgrounds
+- System-themed 3DS branding: custom `48x48` HOME icon (`resources/icon.png`), 2D HOME hover banner (`resources/banner.bnr`), 3-column parallax ROM-selector splash with GB/GBC box art (`gfx/splash_*.png` → `romfs/gfx/splash.t3x`), blurred GB/GBC in-game box-art wall (`romfs/gfx/background_game_screen.png`), Game Boy Color touch-screen photo (`romfs/gfx/background_second_screen_{us,pal}.png`), and a built-in Game Boy Color bezel (`222x200` inner window; enable via **Settings → Display → Game Bezel**, automatically fitting scaled gameplay inside the frame when **Auto-Fit** is Off)
 - UI themes (`DarkMode`, `RetroArch`, `Original`), fonts (`Tempesta`, `Ronda`), ROM boxart/title/gameplay thumbnails, and directory listing cache
 - 5 save state slots (`.1.frz`–`.5.frz`) with embedded `80x72` thumbnails, optional auto-savestate, async SD save worker, and periodic dirty-SRAM + RTC `.sav` saving
 - In-game screenshots (PNG) and RetroArch `.cht` cheat support (Game Genie & GameShark codes)
@@ -49,6 +50,8 @@ Outputs:
 - `output/gambatte_3ds.cia`
 - `output/gambatte_3ds.smdh`
 
+> **Asset packaging note:** `Makefile` does not list `romfs/gfx/*.png` or `resources/banner.bnr` as prerequisites of `.3dsx`/`.cia`. If you update branding PNGs or rebuild `resources/banner.bnr` (generated from `resources/banner.png` + WAV audio via `bannertool`), delete `romfs/gfx/splash.t3x` and `output/gambatte_3ds.{3dsx,cia,smdh}` before running `make release`.
+
 ### Host Self-Tests
 
 Core execution, decimated audio output, save-state serialization, cheat parsing/classification, and the `StereoRingBuffer` can be tested natively on Linux without 3DS hardware (`tests/test_core.cpp`).
@@ -58,4 +61,6 @@ Core execution, decimated audio output, save-state serialization, cheat parsing/
 - **Sindre Aamås & libretro contributors** for [Gambatte](https://github.com/libretro/gambatte-libretro) (GPLv2) and `blipper`
 - **matbo87** for [matbo87/snes9x_3ds](https://github.com/matbo87/snes9x_3ds)
 - **bubble2k16** for the original [bubble2k16/snes9x_3ds](https://github.com/bubble2k16/snes9x_3ds) codebase
+- **libretro-thumbnails** for the GB/GBC box art composited into the splash screen and in-game background
+- **Steveice10** for [bannertool](https://github.com/Steveice10/bannertool) (offline `banner.bnr` generation)
 - **devkitPro** (`devkitARM`, `libctru`, `citro3d`, `tex3ds`)

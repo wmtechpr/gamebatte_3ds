@@ -13,6 +13,7 @@ Onboarding and debugging guide for agents working on **gambatte_3ds**, a Nintend
 - **Core integration (`source/3dsimpl.h`, `source/3dsimpl.cpp`):** Owns `GAME_MAIN` (`256x256` `GPU_RGB565` VRAM texture with `160x144` active region), `g_fbLinear` (`linearAlloc`), `blipper` 64x stereo audio decimation (`~2,097,152 Hz` -> `32,768 Hz`), DMG palettes, GBC color correction, interframe blending, `160x144` RGB8 screenshots, `80x72` swizzled RGB565 thumbnails, battery `.sav` + RTC, and RetroArch `.cht` Game Genie / GameShark support.
 - **Vendored core (`source/gambatte/`):** `libretro/gambatte-libretro` core (`libgambatte/src/{,mem,sound,video}/*.cpp`, `libretro/blipper.c`, `libretro/gambatte_log.c`). Local fix in `source/gambatte/libgambatte/include/gambatte.h:27` adds `#include <cstdint>` for GCC 13+ hosts.
 - **Custom citro3d (`patches/citro3d.patch` -> `libs/citro3d`):** Clones/patches `devkitPro/citro3d` `v1.7.1` to add `C3Di_RenderQueueIsDone()` and the vertex uniform dirty-bound optimization. Always update `patches/citro3d.patch`, never `libs/citro3d` directly (`Makefile:225-237` resets `libs/citro3d` when the patch changes).
+- **Custom branding assets (`resources/`, `gfx/`, `romfs/gfx/`):** Custom GBC `48x48` icon (`resources/icon.png`), 2D HOME hover banner (`resources/banner.png` -> `resources/banner.bnr` via `bannertool` with silent 22050 Hz PCM WAV), 3-column parallax splash (`gfx/splash_{logo,center,left,right}.png` -> `romfs/gfx/splash.t3x`), GBC bezel (`romfs/gfx/overlay.png`), blurred GB/GBC box-art game background (`romfs/gfx/background_game_screen.png`), and GBC touch-screen background (`romfs/gfx/background_second_screen_{us,pal}.png`).
 - **Host tests (`tests/test_core.cpp`):** Native Linux tests covering Gambatte GB/GBC execution on a synthetic ROM + APU audio via `blipper`, save-state round-trip, Game Genie / GameShark application, `StereoRingBuffer`, and `.cht` parsing/classification/serialization.
 
 ---
@@ -28,6 +29,8 @@ docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp \
   -v "$PWD:/src" -w /src devkitpro/devkitarm \
   bash -c "git config --global --add safe.directory '*' && make release"
 ```
+
+When changing `resources/icon.png`, `resources/banner.bnr`, `gfx/splash_*.png`, or `romfs/gfx/*.png`, delete `romfs/gfx/splash.t3x` and `output/gambatte_3ds.{3dsx,cia,smdh}` before `make release` so `tex3ds`, `smdhtool`, `3dsxtool`, and `makerom` repackage the updated assets (`Makefile` only lists `.elf`/`.smdh` as prerequisites of `.3dsx`/`.cia`).
 
 ### Symbolize Luma3DS Crash Addresses
 
@@ -75,10 +78,13 @@ rm -rf /tmp/gambatte_host_obj && mkdir -p /tmp/gambatte_host_obj && (
 3. **PICA200 frame & texture rules:** `C3D_SyncDisplayTransfer` must run **outside** `C3D_FrameBegin..C3D_FrameEnd` after `gpu3dsWaitForRenderQueue()` (`source/3dsimpl.cpp:708-712`). Because `DISPLAY_TRANSFER_FLAGS` uses `GX_TRANSFER_FLIP_VERT(0)`, `GAME_MAIN` (`256x256`) uses inverted V coordinates (`ty0 = 256`, `ty1 = 112` in `source/3dsimpl.cpp:1130-1131, 1182-1183`).
 4. **Exact NDSP audio rate match (`source/3dsimpl.cpp:379-380`, `source/3dssound.h:10-12`):** `blipper_new(32, 0.85, 6.5, 64, 1536, NULL)` decimates Gambatte's native `~2,097,152 Hz` sample rate by `64` to exact `32,768 Hz` matching `SND3DS_SAMPLE_RATE`.
 5. **Custom citro3d checkout:** Never edit `libs/citro3d` directly; store changes in `patches/citro3d.patch`.
+6. **Built-in bezel geometry & touch BG safe zone (`source/3dsui_img.cpp:27-30`, `source/3dsimpl.cpp`):** `BEZEL_INNER_WIDTH = 222`, `BEZEL_INNER_HEIGHT = 200` (centered transparent cutout `x=89..310, y=20..219` in `400x240` `romfs/gfx/overlay.png`). `img3dsGetBuiltInBezelBounds()` fits scaled game viewports inside `222x200` only when the built-in `romfs:/` bezel is active, `GameScreen == GFX_TOP`, `ScreenStretch != Full`, and `GameOverlayAutoFit == false`, leaving custom SD overlays untouched. `background_second_screen_{us,pal}.png` (`400x240`) renders centered on the `320x240` bottom screen (`sx0 = -40`), so main visual subjects must stay within `x = 40..360`.
 
 ---
 
-## 4. Real-Hardware Fixes Applied & Secondary Checks
+## 4. Real-Hardware Status & Branding Notes
+
+- **Verified working on real 3DS hardware:** GB and GBC ROM loading, rendering, audio, and gameplay work on hardware after the GPU/VRAM fixes (`0c0a7af`). Custom icon/bezel/touch BG (`6c86a56`) and HOME banner/splash/in-game BG (`c939961`) were built cleanly with `make release` (new HOME banner & splash await visual check on real 3DS).
 
 ### Fixed: Startup GPU NULL Dereference & Unsynchronized VRAM Clear
 
