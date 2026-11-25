@@ -234,6 +234,7 @@ static void clearFramebuffers() {
     g_pendingDraw = false;
 
     if (GPU3DS.textures[GAME_MAIN].tex.data) {
+        gpu3dsWaitForRenderQueue();
         gpu3dsClearTexture(&GPU3DS.textures[GAME_MAIN], 0);
     }
 }
